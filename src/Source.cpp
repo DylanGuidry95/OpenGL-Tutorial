@@ -6,6 +6,7 @@
 #include <glm\ext.hpp>
 #include <vector>
 #include "MyApplication.h"
+#include <fstream>
 
 //Link to OpenGL 4.5 refrence https://www.opengl.org/sdk/docs/man4/
 
@@ -186,22 +187,27 @@ void GenGrid(unsigned int rows, unsigned int cols)
 //Called in StartUp()
 void CreateShaders()
 {
-	//Creates the shaders
-	//Vertex Shader
-	const char* vsSource = "#version 410\n \
-							layout(location=0) in vec4 Position; \
-							layout(location=1) in vec4 Color; \
-							out vec4 vColor; \
-							uniform mat4 ProjectionView; \
-							uniform float time; \
-							uniform float heightScale; \
-							void main() {  vColor = Color; gl_Position = ProjectionView * Position ; }";
+	std::string vsSource;
+	std::ifstream vshaderStream("VertexShader.vert");
+	if (vshaderStream.is_open())
+	{
+		while (vshaderStream.good())
+		{
+			std::getline(vshaderStream, vsSource);
+		}
+		vshaderStream.close();
+	}
 
-	//Fragmant Shader
-	const char* fsSource = "#version 410\n \
-							in vec4 vColor; \
-							out vec4 FragColor; \
-							void main() {FragColor = vColor;} ";
+	std::string fsSource;
+	std::ifstream fshaderStream("FragmentShader.frag");
+	if (fshaderStream.is_open())
+	{
+		while (fshaderStream.good())
+		{
+			std::getline(fshaderStream, fsSource);
+		}
+		fshaderStream.close();
+	}
 
 
 	//Compiles the shaders
