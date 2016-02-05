@@ -50,6 +50,10 @@ struct Vertex
 
 std::vector<OpenGLInfo> m_gl_info;
 
+//Screen Resoulution
+float WINDOW_WIDTH = 1600;
+float WINDOW_HEIGHT = 900;
+
 unsigned int programID; //Value that represent our application
 
 GLFWwindow *window; //Represents our window
@@ -117,24 +121,27 @@ void createOpenGLBuffers(std::vector<tinyobj::shape_t>& shapes)
 void GenGrid(unsigned int rows, unsigned int cols)
 {
 	mat4 m_view = glm::lookAt(vec3(10, 10, 10), vec3(0), vec3(0, 1, 0));
-	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16 / 9.f, 0.1f, 1000.f);
+	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f /9.f, 0.1f, 100.f);
 	mat4 m_projectionViewMatrix = m_projection * m_view;
 	vec4 aoVertices[3]; //Array to stroe the 3 verts of a triangle
 	OpenGLInfo glInfo; //Used to refrence the struct that stores the VBO VAO IBO
 	
 	//Statictly set all verts in the aoVerticies array
-	aoVertices[0].x = -0.5;
+	//Left
+	aoVertices[0].x = -2.0;
 	aoVertices[0].y = 0.0;
 	aoVertices[0].z = 0.0; 
 	aoVertices[0].w = 1.0;
 
-	aoVertices[1].x = 0.5;
+	//Right
+	aoVertices[1].x = 2.0;
 	aoVertices[1].y = 0.0;
 	aoVertices[1].z = 0.0; 
 	aoVertices[1].w = 1.0;
 	
+	//top
 	aoVertices[2].x = 0.0;
-	aoVertices[2].y = 0.5;
+	aoVertices[2].y = 2.0;
 	aoVertices[2].z = 0.0; 
 	aoVertices[2].w = 1.0;
 
@@ -143,7 +150,6 @@ void GenGrid(unsigned int rows, unsigned int cols)
 	auiIndices[0] = 0;
 	auiIndices[1] = 1;
 	auiIndices[2] = 2;
-
 
 	///Creating our Vertex Array Objects 
 	//Gen our GL Buffers
@@ -182,7 +188,7 @@ void CreateShaders()
 {
 	//Creates the shaders
 	//Vertex Shader
-	const char* vsSource = "#version 150\n \
+	const char* vsSource = "#version 410\n \
 							layout(location=0) in vec4 Position; \
 							layout(location=1) in vec4 Color; \
 							out vec4 vColor; \
@@ -192,7 +198,7 @@ void CreateShaders()
 							void main() {  vColor = Color; gl_Position = ProjectionView * Position ; }";
 
 	//Fragmant Shader
-	const char* fsSource = "#version 150\n \
+	const char* fsSource = "#version 410\n \
 							in vec4 vColor; \
 							out vec4 FragColor; \
 							void main() {FragColor = vColor;} ";
@@ -241,7 +247,7 @@ int StartUp()
 	if (glfwInit() == false) //Checks if glfw can start
 		return -1;
 
-	window = glfwCreateWindow(800,400,"OpenGL", nullptr, nullptr); //Sets the property of the window we are trying correct
+	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT,"OpenGL", nullptr, nullptr); //Sets the property of the window we are trying correct
 
 	if (window == nullptr) //If no window is created the program is closed
 		glfwTerminate();
