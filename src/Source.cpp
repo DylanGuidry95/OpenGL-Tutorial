@@ -39,18 +39,20 @@ struct OpenGLInfo
 	unsigned int m_index_count; //Number of indexes
 };
 
-//Represents what makes up a Vertex obj
+//Defines what makes up a Vertex obj
 struct Vertex
 {
-	vec4 position;
-	vec4  color;
+	vec3 position;
+	vec3  color;
 };	
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
 std::vector<OpenGLInfo> m_gl_info;
 
-unsigned int programID;
+unsigned int programID; //Value that represent our application
 
-GLFWwindow *window;
+GLFWwindow *window; //Represents our window
 
 //Creates and binds buffers to a vertex array object
 void createOpenGLBuffers(std::vector<tinyobj::shape_t>& shapes)
@@ -114,118 +116,108 @@ void createOpenGLBuffers(std::vector<tinyobj::shape_t>& shapes)
 //When called generates a grid in the scene view
 void GenGrid(unsigned int rows, unsigned int cols)
 {
-	mat4 projectionViewMatrix = glm::perspective(glm::pi<float>()*0.25f, 16 / 9.f, 0.1f, 1000.f);
-	Vertex aoVertices[2 * 2];
-	OpenGLInfo glInfo;
+	mat4 m_view = glm::lookAt(vec3(10, 10, 10), vec3(0), vec3(0, 1, 0));
+	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16 / 9.f, 0.1f, 1000.f);
+	mat4 m_projectionViewMatrix = m_projection * m_view;
+	vec4 aoVertices[3]; //Array to stroe the 3 verts of a triangle
+	OpenGLInfo glInfo; //Used to refrence the struct that stores the VBO VAO IBO
+	
+	//Statictly set all verts in the aoVerticies array
+	aoVertices[0].x = -0.5;
+	aoVertices[0].y = 0.0;
+	aoVertices[0].z = 0.0; 
+	aoVertices[0].w = 1.0;
 
-	for (unsigned int r = 0; r < 2; r++)
-	{
-		for (unsigned int c = 0; c < 2; c++)
-		{
-			aoVertices[r * 2 + c].position = vec4((float)c, 0, (float)r, 1);
-			//Create some arbitrary color based off something
-			//that might not be related to tiling or texture
-			vec3 color = vec3(sinf((c / (float)(2 - 1)) * (r / (float)(2 - 1))));
-			aoVertices[r * 2 + c].color = vec4(color, 1);
-		}
-	}
-	//Creates an index array, as the grid is drawn in a series of quads.
-	//defining the index count based off quad count (2 triangles per quad)
-	unsigned int auiIndices[(2 - 1) * (2 - 1) * 6];
-	unsigned int index = 0;
-	for (unsigned int r = 0; r < (2 - 1); r++)
-	{
-		for (unsigned int c = 0; c < (2 - 1); c++)
-		{
-			//Triangle 1
-			auiIndices[index++] = r * 2 + c;
-			auiIndices[index++] = (r + 1) * 2 + c;
-			auiIndices[index++] = (r + 1) * 2 + c + 1;
-			//Triangle 2
-			auiIndices[index++] = r * 2 + c;
-			auiIndices[index++] = (r + 1) * 2 + (c + 1);
-			auiIndices[index++] = r * 2 + (c + 1);
-		}
-	}
+	aoVertices[1].x = 0.5;
+	aoVertices[1].y = 0.0;
+	aoVertices[1].z = 0.0; 
+	aoVertices[1].w = 1.0;
+	
+	aoVertices[2].x = 0.0;
+	aoVertices[2].y = 0.5;
+	aoVertices[2].z = 0.0; 
+	aoVertices[2].w = 1.0;
+
+	//Staticly sets the index number for the verts
+	unsigned int auiIndices[3];
+	auiIndices[0] = 0;
+	auiIndices[1] = 1;
+	auiIndices[2] = 2;
+
 
 	///Creating our Vertex Array Objects 
 	//Gen our GL Buffers
 	glGenBuffers(1, &glInfo.m_VBO); //Vertex Buffer Object
-	glGenBuffers(1, &glInfo.m_IBO); //Index Buffer Object
-
-									//Generate Vertex Array Object
-	glGenVertexArrays(1, &glInfo.m_VAO);
-
-	glBindVertexArray(glInfo.m_VAO);
-
-	//Binds and fills the Vertex Buffer Object
 	glBindBuffer(GL_ARRAY_BUFFER, glInfo.m_VBO); //Bind names to the buffer obj
-	glBufferData(GL_ARRAY_BUFFER, (2 * 2) * sizeof(Vertex), aoVertices, GL_STATIC_DRAW); //Copies the names of the buffers to there new place in memory
+	glBufferData(GL_ARRAY_BUFFER, (3) * sizeof(vec4), &aoVertices, GL_STATIC_DRAW); //Copies the names of the buffers to there new place in memory on the GPU
 
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(vec4)));
+	glGenBuffers(1, &glInfo.m_IBO); //Index Buffer Object
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glInfo.m_IBO);//Bind names to the buffer obj
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, (3) * sizeof(unsigned int), &auiIndices, GL_STATIC_DRAW);	//Copies the names of the buffers to the new place in memory on the GPU
+
+	glGenVertexArrays(1, &glInfo.m_VAO); //Generates the Vertex Array
+	glBindVertexArray(glInfo.m_VAO); //Binds the Vertex Array
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glInfo.m_IBO); //Binds the Index buffer to the corresponding index
+	glEnableVertexAttribArray(0); //Grabs the shader at the index of 0 (Vertex Shader)
+	glEnableVertexAttribArray(1); //Grabs the shader at the index of 1 (Fragmant Shader)
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), BUFFER_OFFSET(0)); //Points to the object we are trying to draw to the corersponding shaders
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), BUFFER_OFFSET(12));
 
 	//Binds and fills the Index Buffer Object
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glInfo.m_IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, (2 * 2) * sizeof(unsigned int), auiIndices, GL_STATIC_DRAW);
-
 	glBindVertexArray(0);
-
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	glUseProgram(programID);
-	unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView");
-	glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(projectionViewMatrix));
+	glUseProgram(programID); //Tells the system what shader or program we are using to render the objects
+	unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView"); //Sets up the view for the window
+	glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(m_projectionViewMatrix)); //Creates the view for the scene
 
-	glBindVertexArray(glInfo.m_VAO);
-	unsigned int indexCount = (2 - 1) * (2 - 1) * 6;
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-
-	//delete[] aoVertices;
+	glBindVertexArray(glInfo.m_VAO); //Binds the Vertex array object
+	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //Draws the verts to the screen in the form of a triangle
 }
 
+//Creates and links all the shaders we will be using to draw to the screen when called
+//Called in StartUp()
 void CreateShaders()
 {
 	//Creates the shaders
-	const char* vsSource = "#version 410\n \
+	//Vertex Shader
+	const char* vsSource = "#version 150\n \
 							layout(location=0) in vec4 Position; \
 							layout(location=1) in vec4 Color; \
 							out vec4 vColor; \
 							uniform mat4 ProjectionView; \
 							uniform float time; \
 							uniform float heightScale; \
-							void main() { vColor = Color; vec4 P = Position; \
-							P.y += sin(time + Position.x) * heightScale; gl_Position = ProjectionView * P;}" ;
+							void main() {  vColor = Color; gl_Position = ProjectionView * Position ; }";
 
-	const char* fsSource = "#version 410\n \
+	//Fragmant Shader
+	const char* fsSource = "#version 150\n \
 							in vec4 vColor; \
 							out vec4 FragColor; \
 							void main() {FragColor = vColor;} ";
 
 
 	//Compiles the shaders
-	int success = GL_FALSE;
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	int success = GL_FALSE; //Check to see if the shader has been linked correctly
+	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER); //Creates the Vertex Shader
+	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER); //Creates the Fragment Shader
 
-	glShaderSource(vertexShader, 1, (const char**)&vsSource, 0);
-	glCompileShader(vertexShader);
+	glShaderSource(vertexShader, 1, (const char**)&vsSource, 0); //Replaces the soource code int the shader obj
+	glCompileShader(vertexShader); //Compilies the shader obj
 	glShaderSource(fragmentShader, 1, (const char**)&fsSource, 0);
 	glCompileShader(fragmentShader);
 
-	programID = glCreateProgram();
-	glAttachShader(programID, vertexShader);
+	programID = glCreateProgram(); //Creates the shader/program that is allowing us to draw to the screen
+	glAttachShader(programID, vertexShader); //Attachs the shader to the program
 	glAttachShader(programID, fragmentShader);
-	//glLinkProgram(programID);
-	glBindAttribLocation(programID, 1,"Position");
+	glBindAttribLocation(programID, 0,"Position"); //Binds the program to an attribute in a shader
 	glBindAttribLocation(programID, 1, "Color");
+	glLinkProgram(programID); //Links the shaders to the program
 
-	glGetProgramiv(programID, GL_LINK_STATUS, &success);
+	glGetProgramiv(programID, GL_LINK_STATUS, &success); //Sets the value of the success variable declared earlier
 
+	//If success == false the console will display an error and message explaining what the error is
 	if (success == GL_FALSE)
 	{
 		int infoLogLength = 0;
@@ -239,30 +231,31 @@ void CreateShaders()
 		delete[] infoLog;
 	}
 
-	glDeleteShader(fragmentShader);
+	glDeleteShader(fragmentShader); //Deletes the shaders
 	glDeleteShader(vertexShader);
 }
 
+//Creates the context window we are drawing to.
 int StartUp()
 {
-	if (glfwInit() == false)
+	if (glfwInit() == false) //Checks if glfw can start
 		return -1;
 
-	window = glfwCreateWindow(1280,720,"OpenGL", nullptr, nullptr);
+	window = glfwCreateWindow(800,400,"OpenGL", nullptr, nullptr); //Sets the property of the window we are trying correct
 
-	if (window == nullptr)
+	if (window == nullptr) //If no window is created the program is closed
 		glfwTerminate();
 
-	glfwMakeContextCurrent(window);
+	glfwMakeContextCurrent(window); //Makes our window the current window being viewed
 
-	if (ogl_LoadFunctions() == ogl_LOAD_FAILED)
+	if (ogl_LoadFunctions() == ogl_LOAD_FAILED) //Checks to see if all functions have been loaded for the program to run if not the program is closed
 	{
-		glfwDestroyWindow(window);
-		glfwTerminate();
+		glfwDestroyWindow(window); //Closes the context window
+		glfwTerminate(); //Closed the application
 		return -3;
 	}
 
-	auto major = ogl_GetMajorVersion();
+	auto major = ogl_GetMajorVersion(); //Gets the version of OpenGL we are running
 	auto minor = ogl_GetMinorVersion();
 	printf_s("GL: %i.%i\n", major, minor);
 
@@ -271,8 +264,10 @@ int StartUp()
 	return 1;
 }
 
+//Keeps the application in a constant game loop
 int Update()
 {
+	//While the contect window is open the program will continue to loop
 	while (glfwWindowShouldClose(window) == false && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS)
 	{
 		glClearColor(0.25f, 0.25f, 0.25f, 1);
@@ -299,19 +294,20 @@ int main()
 	//	}
 	//	delete theApp;
 
+	//Starts the application
 	if (StartUp() == true)
 	{
-
+		//Starts the game loop
 		while (Update() == true)
 		{
-			GenGrid(2, 2);
-			glfwSwapBuffers(window);
-			glfwPollEvents();
+			GenGrid(2, 2); //Draws objects to the screen
+			glfwSwapBuffers(window); //Keeps the window open
+			glfwPollEvents(); //Polls all events that happen while the window is active
 			
 		}
 
-		glfwDestroyWindow(window);
-		glfwTerminate();
+		glfwDestroyWindow(window); //When window is closed destroys the window
+		glfwTerminate(); //Closed the applicatoin
 	}
 
 	return 0;
