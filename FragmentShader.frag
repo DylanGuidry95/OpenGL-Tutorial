@@ -1,4 +1,4 @@
-#version 410\n 
+#version 410 
 in vec4 vColor; 
 out vec4 FragColor; 
 void main() {FragColor = vColor;} 

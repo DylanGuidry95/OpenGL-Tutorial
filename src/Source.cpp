@@ -119,9 +119,9 @@ void createOpenGLBuffers(std::vector<tinyobj::shape_t>& shapes)
 }
 
 //When called generates a grid in the scene view
-void GenGrid(unsigned int rows, unsigned int cols)
+void Draw()
 {
-	mat4 m_view = glm::lookAt(vec3(10, 10, 10), vec3(0), vec3(0, 1, 0));
+	mat4 m_view = glm::lookAt(vec3(0, 0, 10), vec3(0), vec3(0, 1, 0));
 	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f /9.f, 0.1f, 100.f);
 	mat4 m_projectionViewMatrix = m_projection * m_view;
 	vec4 aoVertices[3]; //Array to stroe the 3 verts of a triangle
@@ -129,20 +129,20 @@ void GenGrid(unsigned int rows, unsigned int cols)
 	
 	//Statictly set all verts in the aoVerticies array
 	//Left
-	aoVertices[0].x = -2.0;
+	aoVertices[0].x = 0.0;
 	aoVertices[0].y = 0.0;
 	aoVertices[0].z = 0.0; 
 	aoVertices[0].w = 1.0;
 
 	//Right
-	aoVertices[1].x = 2.0;
+	aoVertices[1].x = 1.0;
 	aoVertices[1].y = 0.0;
 	aoVertices[1].z = 0.0; 
 	aoVertices[1].w = 1.0;
 	
 	//top
 	aoVertices[2].x = 0.0;
-	aoVertices[2].y = 2.0;
+	aoVertices[2].y = 1.0;
 	aoVertices[2].z = 0.0; 
 	aoVertices[2].w = 1.0;
 
@@ -187,27 +187,34 @@ void GenGrid(unsigned int rows, unsigned int cols)
 //Called in StartUp()
 void CreateShaders()
 {
-	std::string vsSource;
-	std::ifstream vshaderStream("VertexShader.vert");
+	std::string vSource; //Source for the shader
+	std::ifstream vshaderStream("VertexShader.vert"); //Gets the file we are trying to read from
 	if (vshaderStream.is_open())
 	{
-		while (vshaderStream.good())
+		std::string vbuff; //Creates a buffer to represent the current line we are reading
+		while (std::getline(vshaderStream, vbuff))
 		{
-			std::getline(vshaderStream, vsSource);
+			//While we are reading a line in we add it to the source and add a terminating character to end the line
+			vSource = vSource + vbuff + "\n";
 		}
 		vshaderStream.close();
 	}
 
-	std::string fsSource;
-	std::ifstream fshaderStream("FragmentShader.frag");
+	std::string fSource; //Source for the shader
+	std::ifstream fshaderStream("FragmentShader.frag"); //Gets the file we are reading from
 	if (fshaderStream.is_open())
 	{
-		while (fshaderStream.good())
+		std::string fbuff; //Creates a buffer to represent the current line we are reading
+		while (std::getline(fshaderStream, fbuff))
 		{
-			std::getline(fshaderStream, fsSource);
+			//While we are reading a line in we add it to the source and add a terminating character to end the line
+			fSource = fSource + fbuff + "\n"; 
 		}
 		fshaderStream.close();
 	}
+
+	const char* vsSource = vSource.c_str(); //Converts the source from a string to a char
+	const char* fsSource = fSource.c_str(); //Converts the source from a string to a char
 
 
 	//Compiles the shaders
@@ -293,26 +300,13 @@ int Update()
 
 int main()
 {
-	//std::vector<tinyobj::shape_t> shapes;
-	//	Application *theApp = new Application();
-	//	
-	//	if(theApp->startup() == true) 
-	//	{
-	//		while (theApp->update() == true)
-	//		{
-	//			theApp->draw();
-	//		}
-	//		theApp->shutdown();
-	//	}
-	//	delete theApp;
-
 	//Starts the application
 	if (StartUp() == true)
 	{
 		//Starts the game loop
 		while (Update() == true)
 		{
-			GenGrid(2, 2); //Draws objects to the screen
+			Draw(); //Draws objects to the screen
 			glfwSwapBuffers(window); //Keeps the window open
 			glfwPollEvents(); //Polls all events that happen while the window is active
 			
