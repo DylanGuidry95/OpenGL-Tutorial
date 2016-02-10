@@ -7,29 +7,9 @@
 #include <vector>
 #include "MyApplication.h"
 #include <fstream>
+#include "tiny_obj_loader.h"
 
 //Link to OpenGL 4.5 refrence https://www.opengl.org/sdk/docs/man4/
-
-namespace tinyobj
-{
-
-	typedef struct mesh_t
-	{
-		std::vector<float>			positions;
-		std::vector<float>			normals;
-		std::vector<float>			texcoords;
-		std::vector<unsigned int>	indices;
-		std::vector<int>			material_ids;
-	};
-
-	typedef struct shape_t
-	{
-		std::string			name;
-		mesh_t				mesh;
-	};
-
-
-}
 
 struct OpenGLInfo
 {
@@ -59,128 +39,59 @@ unsigned int programID; //Value that represent our application
 
 GLFWwindow *window; //Represents our window
 
-//Creates and binds buffers to a vertex array object
-void createOpenGLBuffers(std::vector<tinyobj::shape_t>& shapes)
+void CreateBuffers(std::vector<tinyobj::shape_t> &shapes)
 {
-	m_gl_info.resize(shapes.size());
-	for (unsigned int mesh_index = 0; mesh_index < shapes.size(); ++mesh_index) 
-	{
-		glGenVertexArrays(1, &m_gl_info[mesh_index].m_VAO); //N (Specifies num of vertex array object names to gen); Arrays (Specifies an array in which the gen vert array is stored)
-		glGenBuffers(1, &m_gl_info[mesh_index].m_VBO); //N (Specifies num of buffer obj names to be gen); buffers (Specifies an array in which the gen buffer obj names are stored)
-		glGenBuffers(1, &m_gl_info[mesh_index].m_IBO);  
-		glBindVertexArray(m_gl_info[mesh_index].m_VAO); //Array (Specifies the name of the vertex array to bind)
+	mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
+	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
+	mat4 m_projectionViewMatrix = m_projection * m_view;
 
-		unsigned int float_count = shapes[mesh_index].mesh.positions.size();  
-		float_count += shapes[mesh_index].mesh.normals.size(); 
+	m_gl_info.resize(shapes.size()); //sets the size of m_gl_info to the size of shapes
+	for (unsigned int mesh_index = 0; mesh_index < shapes.size(); mesh_index++)
+	{
+		glGenVertexArrays(1, &m_gl_info[mesh_index].m_VAO); //Gens the vertex array at the current index
+		glGenBuffers(1, &m_gl_info[mesh_index].m_VBO); //Gen the vertex buffer
+		glGenBuffers(1, &m_gl_info[mesh_index].m_IBO); //Gen the index buffer
+		glBindVertexArray(m_gl_info[mesh_index].m_VAO); //binds the vertex array
+
+		unsigned int float_count = shapes[mesh_index].mesh.positions.size();
+		float_count += shapes[mesh_index].mesh.normals.size();
 		float_count += shapes[mesh_index].mesh.texcoords.size();
 
-		std::vector<float> vertex_data;		
+		std::vector<float> vertex_data;
 		vertex_data.reserve(float_count);
 
-		vertex_data.insert(vertex_data.end(),
-			shapes[mesh_index].mesh.positions.begin(), 
-			shapes[mesh_index].mesh.positions.end()); 
-		
-		vertex_data.insert(vertex_data.end(), 
-			shapes[mesh_index].mesh.normals.begin(),
-			shapes[mesh_index].mesh.normals.end());
-		
-		m_gl_info[mesh_index].m_index_count = 
-			shapes[mesh_index].mesh.indices.size();
+		vertex_data.insert(vertex_data.end(), shapes[mesh_index].mesh.positions.begin(), shapes[mesh_index].mesh.positions.end());
 
-		glBindBuffer(GL_ARRAY_BUFFER, m_gl_info[mesh_index].m_VBO); //Target (Specifies the target to which the buffer obj is bound); buffer (Spcifies the name of a buffer obj) 
-		
-		//Target (Specifes the target which the buffer obj is bound for glBufferData)
-		//Buffer (Specifies the size in bytes of the buffer obj's new data store)
-		//Data (Specifies a pointer to data that will be copied into the data store for initilization, or NULL if no data is to be copied)
-		//Usage (Specifies the expected usage pattern of the data store. The symbol constant must be 
-						//(GL_STREAM_DRAW, GL_STREAM_READ, GL_STREAM_COPY, GL_STATIC_DRAW, GL_STATIC_READ, GL_STATIC_COPY, GL_DYNAMIC_DRAW, GL_DYNAMIC_READ, or GL_DYNAMIC_COPY)
-		glBufferData(GL_ARRAY_BUFFER, 
-					vertex_data.size() * sizeof(float),
-					vertex_data.data(), GL_STATIC_DRAW);
+		vertex_data.insert(vertex_data.end(), shapes[mesh_index].mesh.normals.begin(), shapes[mesh_index].mesh.normals.end());
+
+		m_gl_info[mesh_index].m_index_count = shapes[mesh_index].mesh.indices.size();
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_gl_info[mesh_index].m_VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(float), vertex_data.data(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gl_info[mesh_index].m_IBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-					shapes[mesh_index].mesh.indices.size() * sizeof(unsigned int), 
-					shapes[mesh_index].mesh.indices.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, shapes[mesh_index].mesh.indices.size() * sizeof(unsigned int), shapes[mesh_index].mesh.indices.data(), GL_STATIC_DRAW);
 
-		glEnableVertexAttribArray(0); //position
-		glEnableVertexAttribArray(1); //normal data  
-		
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);  
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 0, 
-		(void*)(sizeof(float)*shapes[mesh_index].mesh.positions.size()));
-		
-		glBindVertexArray(0);  
-		glBindBuffer(GL_ARRAY_BUFFER, 0);  
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 0, (void*)(sizeof(float)*shapes[mesh_index].mesh.positions.size()));
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		glUseProgram(programID); //Tells the system what shader or program we are using to render the objects
+		unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView"); //Sets up the view for the window
+		glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(m_projectionViewMatrix)); //Creates the view for the scene
+
+		for (unsigned int i = 0; i < m_gl_info.size(); i++)
+		{
+			glBindVertexArray(m_gl_info[i].m_VAO);
+			glDrawElements(GL_TRIANGLES, m_gl_info[i].m_index_count, GL_UNSIGNED_INT, 0);
+		}	
 	}
-	
-}
-
-//When called generates a grid in the scene view
-void Draw()
-{
-	mat4 m_view = glm::lookAt(vec3(0, 0, 10), vec3(0), vec3(0, 1, 0));
-	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f /9.f, 0.1f, 100.f);
-	mat4 m_projectionViewMatrix = m_projection * m_view;
-	vec4 aoVertices[3]; //Array to stroe the 3 verts of a triangle
-	OpenGLInfo glInfo; //Used to refrence the struct that stores the VBO VAO IBO
-	
-	//Statictly set all verts in the aoVerticies array
-	//Left
-	aoVertices[0].x = 0.0;
-	aoVertices[0].y = 0.0;
-	aoVertices[0].z = 0.0; 
-	aoVertices[0].w = 1.0;
-
-	//Right
-	aoVertices[1].x = 1.0;
-	aoVertices[1].y = 0.0;
-	aoVertices[1].z = 0.0; 
-	aoVertices[1].w = 1.0;
-	
-	//top
-	aoVertices[2].x = 0.0;
-	aoVertices[2].y = 1.0;
-	aoVertices[2].z = 0.0; 
-	aoVertices[2].w = 1.0;
-
-	//Staticly sets the index number for the verts
-	unsigned int auiIndices[3];
-	auiIndices[0] = 0;
-	auiIndices[1] = 1;
-	auiIndices[2] = 2;
-
-	///Creating our Vertex Array Objects 
-	//Gen our GL Buffers
-	glGenBuffers(1, &glInfo.m_VBO); //Vertex Buffer Object
-	glBindBuffer(GL_ARRAY_BUFFER, glInfo.m_VBO); //Bind names to the buffer obj
-	glBufferData(GL_ARRAY_BUFFER, (3) * sizeof(vec4), &aoVertices, GL_STATIC_DRAW); //Copies the names of the buffers to there new place in memory on the GPU
-
-	glGenBuffers(1, &glInfo.m_IBO); //Index Buffer Object
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glInfo.m_IBO);//Bind names to the buffer obj
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, (3) * sizeof(unsigned int), &auiIndices, GL_STATIC_DRAW);	//Copies the names of the buffers to the new place in memory on the GPU
-
-	glGenVertexArrays(1, &glInfo.m_VAO); //Generates the Vertex Array
-	glBindVertexArray(glInfo.m_VAO); //Binds the Vertex Array
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glInfo.m_IBO); //Binds the Index buffer to the corresponding index
-	glEnableVertexAttribArray(0); //Grabs the shader at the index of 0 (Vertex Shader)
-	glEnableVertexAttribArray(1); //Grabs the shader at the index of 1 (Fragmant Shader)
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), BUFFER_OFFSET(0)); //Points to the object we are trying to draw to the corersponding shaders
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vec4), BUFFER_OFFSET(12));
-
-	//Binds and fills the Index Buffer Object
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	glUseProgram(programID); //Tells the system what shader or program we are using to render the objects
-	unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView"); //Sets up the view for the window
-	glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(m_projectionViewMatrix)); //Creates the view for the scene
-
-	glBindVertexArray(glInfo.m_VAO); //Binds the Vertex array object
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //Draws the verts to the screen in the form of a triangle
 }
 
 //Creates and links all the shaders we will be using to draw to the screen when called
@@ -300,18 +211,32 @@ int Update()
 
 int main()
 {
+	std::vector<tinyobj::shape_t> bunny;
+	std::vector<tinyobj::material_t> bMaterials;
+	std::string berr;
+	tinyobj::LoadObj(bunny, bMaterials, berr, "bunny.obj");
+	std::vector<tinyobj::shape_t> tri;
+	std::vector<tinyobj::material_t> tMaterials;
+	std::string terr;
+	tinyobj::LoadObj(tri, tMaterials, terr, "triangle.obj");
+	std::vector<tinyobj::shape_t> sqr;
+	std::vector<tinyobj::material_t> sMaterials;
+	std::string serr;
+	tinyobj::LoadObj(sqr, sMaterials, serr, "square.obj");
 	//Starts the application
 	if (StartUp() == true)
 	{
+
 		//Starts the game loop
 		while (Update() == true)
 		{
-			Draw(); //Draws objects to the screen
+			//Draw(); //Draws objects to the screen
+			CreateBuffers(bunny);
+			CreateBuffers(tri);
+			CreateBuffers(sqr);
 			glfwSwapBuffers(window); //Keeps the window open
-			glfwPollEvents(); //Polls all events that happen while the window is active
-			
+			glfwPollEvents(); //Polls all events that happen while the window is active		
 		}
-
 		glfwDestroyWindow(window); //When window is closed destroys the window
 		glfwTerminate(); //Closed the applicatoin
 	}
