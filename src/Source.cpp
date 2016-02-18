@@ -2,12 +2,13 @@
 #include <gl_core_4_4.h> 
 #include <GLFW/glfw3.h> 
 #include <Gizmos.h>
-#include <glm\glm.hpp>
 #include <glm\ext.hpp>
-#include <vector>
 #include "MyApplication.h"
 #include <fstream>
 #include "tiny_obj_loader.h"
+#include "Nodes.h"
+
+
 
 //Link to OpenGL 4.5 refrence https://www.opengl.org/sdk/docs/man4/
 
@@ -19,6 +20,7 @@ struct OpenGLInfo
 	unsigned int m_IBO; //Index Buffer Object
 	unsigned int m_index_count; //Number of indexes
 };
+
 
 //Defines what makes up a Vertex obj
 struct Vertex
@@ -39,12 +41,12 @@ unsigned int programID; //Value that represent our application
 
 GLFWwindow *window; //Represents our window
 
-void CreateBuffers(std::vector<tinyobj::shape_t> &shapes)
-{
-	mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
-	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
-	mat4 m_projectionViewMatrix = m_projection * m_view;
+mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
+mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
+mat4 m_projectionViewMatrix = m_projection * m_view;
 
+void CreateObjBuffers(std::vector<tinyobj::shape_t> &shapes)
+{
 	m_gl_info.resize(shapes.size()); //sets the size of m_gl_info to the size of shapes
 	for (unsigned int mesh_index = 0; mesh_index < shapes.size(); mesh_index++)
 	{
@@ -92,6 +94,37 @@ void CreateBuffers(std::vector<tinyobj::shape_t> &shapes)
 			glDrawElements(GL_TRIANGLES, m_gl_info[i].m_index_count, GL_UNSIGNED_INT, 0);
 		}	
 	}
+}
+
+void CreateBuffers(Plane *p)
+{
+	mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
+	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
+	mat4 m_projectionViewMatrix = m_projection * m_view;
+
+	OpenGLInfo gl_Info;
+	glGenVertexArrays(1, &gl_Info.m_VAO); //vertex array generation
+	glGenBuffers(1, &gl_Info.m_VBO); //Vertex Buffer gen
+	glGenBuffers(1, &gl_Info.m_IBO); //Index buffer gen
+	glBindVertexArray(gl_Info.m_VAO); //bing vertex array
+
+	glBindBuffer(GL_ARRAY_BUFFER, gl_Info.m_VBO);
+	glBufferData(GL_ARRAY_BUFFER, (p->width * p->height) * sizeof(p->nodes), p->nodes, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, gl_Info.m_IBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(p->squares) * sizeof(unsigned int), p->squares->tris->indices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(p->nodes), 0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(p->nodes), (void*)(sizeof(p->nodes->Pos)));
+
+	glUseProgram(programID);
+	unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView");
+	glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(m_projectionViewMatrix));
+	glBindVertexArray(gl_Info.m_VAO);
+	glDrawElements(GL_TRIANGLES, sizeof(p->squares), GL_UNSIGNED_INT, 0);
 }
 
 //Creates and links all the shaders we will be using to draw to the screen when called
@@ -211,29 +244,33 @@ int Update()
 
 int main()
 {
-	std::vector<tinyobj::shape_t> bunny;
-	std::vector<tinyobj::material_t> bMaterials;
-	std::string berr;
-	tinyobj::LoadObj(bunny, bMaterials, berr, "bunny.obj");
-	std::vector<tinyobj::shape_t> tri;
-	std::vector<tinyobj::material_t> tMaterials;
-	std::string terr;
-	tinyobj::LoadObj(tri, tMaterials, terr, "triangle.obj");
-	std::vector<tinyobj::shape_t> sqr;
-	std::vector<tinyobj::material_t> sMaterials;
-	std::string serr;
-	tinyobj::LoadObj(sqr, sMaterials, serr, "square.obj");
+	//std::vector<tinyobj::shape_t> bunny;
+	//std::vector<tinyobj::material_t> bMaterials;
+	//std::string berr;
+	//tinyobj::LoadObj(bunny, bMaterials, berr, "bunny.obj");
+	//std::vector<tinyobj::shape_t> tri;
+	//std::vector<tinyobj::material_t> tMaterials;
+	//std::string terr;
+	//tinyobj::LoadObj(tri, tMaterials, terr, "triangle.obj");
+	//std::vector<tinyobj::shape_t> sqr;
+	//std::vector<tinyobj::material_t> sMaterials;
+	//std::string serr;
+	//tinyobj::LoadObj(sqr, sMaterials, serr, "square.obj");
+
+	Plane *p = new Plane;
+
 	//Starts the application
 	if (StartUp() == true)
 	{
-
+		p->SetNodes();
+		p->SetConnectins();
 		//Starts the game loop
 		while (Update() == true)
 		{
-			//Draw(); //Draws objects to the screen
-			CreateBuffers(bunny);
-			CreateBuffers(tri);
-			CreateBuffers(sqr);
+			//CreateBuffers(bunny);
+			//CreateBuffers(tri);
+			//CreateBuffers(sqr);
+			CreateBuffers(p);
 			glfwSwapBuffers(window); //Keeps the window open
 			glfwPollEvents(); //Polls all events that happen while the window is active		
 		}

@@ -24,6 +24,7 @@
     <ClInclude Include="dep\include\MyApplication.h" />
     <ClInclude Include="dep\include\test.h" />
     <ClInclude Include="dep\include\tiny_obj_loader.h" />
+    <ClInclude Include="Nodes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E1595987-9B83-4A7A-BE59-FBF49119FAFC}</ProjectGuid>
