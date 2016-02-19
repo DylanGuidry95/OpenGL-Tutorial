@@ -25,8 +25,8 @@ struct OpenGLInfo
 //Defines what makes up a Vertex obj
 struct Vertex
 {
-	vec3 position;
-	vec3  color;
+	vec4 position;
+	vec4  color;
 };	
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -98,33 +98,36 @@ void CreateObjBuffers(std::vector<tinyobj::shape_t> &shapes)
 
 void CreateBuffers(Plane *p)
 {
-	mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
-	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
-	mat4 m_projectionViewMatrix = m_projection * m_view;
-
 	OpenGLInfo gl_Info;
+
 	glGenVertexArrays(1, &gl_Info.m_VAO); //vertex array generation
 	glGenBuffers(1, &gl_Info.m_VBO); //Vertex Buffer gen
 	glGenBuffers(1, &gl_Info.m_IBO); //Index buffer gen
 	glBindVertexArray(gl_Info.m_VAO); //bing vertex array
 
 	glBindBuffer(GL_ARRAY_BUFFER, gl_Info.m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, (p->width * p->height) * sizeof(p->nodes), p->nodes, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (p->row * p->cols) * sizeof(Vertex), &p->vertices, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, gl_Info.m_IBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(p->squares) * sizeof(unsigned int), p->squares->tris->indices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (p->row-1) * (p->cols - 1) * 6 * sizeof(unsigned int), &p->indicies, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_Info.m_IBO);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(p->nodes), 0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(p->nodes), (void*)(sizeof(p->nodes->Pos)));
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(0));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(sizeof(vec4)));
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	glUseProgram(programID);
 	unsigned int projectionViewUniform = glGetUniformLocation(programID, "ProjectionView");
 	glUniformMatrix4fv(projectionViewUniform, 1, false, glm::value_ptr(m_projectionViewMatrix));
 	glBindVertexArray(gl_Info.m_VAO);
-	glDrawElements(GL_TRIANGLES, sizeof(p->squares), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, (p->row - 1) * (p->cols - 1) * 6, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
 //Creates and links all the shaders we will be using to draw to the screen when called
@@ -258,19 +261,20 @@ int main()
 	//tinyobj::LoadObj(sqr, sMaterials, serr, "square.obj");
 
 	Plane *p = new Plane;
-
+	p->GenIndicies();
 	//Starts the application
 	if (StartUp() == true)
-	{
-		p->SetNodes();
-		p->SetConnectins();
+	{	
+
+		CreateBuffers(p);
+
 		//Starts the game loop
 		while (Update() == true)
 		{
-			//CreateBuffers(bunny);
-			//CreateBuffers(tri);
-			//CreateBuffers(sqr);
-			CreateBuffers(p);
+			//CreateObjBuffers(bunny);
+			//CreateObjBuffers(tri);
+			//CreateObjBuffers(sqr);
+
 			glfwSwapBuffers(window); //Keeps the window open
 			glfwPollEvents(); //Polls all events that happen while the window is active		
 		}
