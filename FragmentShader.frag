@@ -1,5 +1,9 @@
-#version 410 
+#version 410
 in vec2 vTexCoord;
-out vec4 FragColor;
-uniform sampler2D diffuse;
-void main() { FragColor = texture(diffuse, vTexCoord).rrrr; FragColor.a = 1;}
+out vec4 out_color;
+uniform sampler2D noiseTexture;
+void main()
+{
+ out_color = texture(noiseTexture, vTexCoord).rrrr;
+ out_color.a = 1;
+}

@@ -44,7 +44,7 @@
 //mat4 m_view = glm::lookAt(vec3(0, 0, 50), vec3(0), vec3(0, 1, 0));
 //mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16.f / 9.f, 0.1f, 100.f);
 //mat4 m_projectionViewMatrix = m_projection * m_view;
-//
+
 //void CreateObjBuffers(std::vector<tinyobj::shape_t> &shapes)
 //{
 //	m_gl_info.resize(shapes.size()); //sets the size of m_gl_info to the size of shapes
@@ -95,7 +95,7 @@
 //		}	
 //	}
 //}
-//
+
 //void CreateBuffers(Plane *p)
 //{
 //	OpenGLInfo gl_Info;
@@ -129,7 +129,7 @@
 //	glBindVertexArray(gl_Info.m_VAO);
 //	glDrawElements(GL_TRIANGLES, (p->row - 1) * (p->cols - 1) * 6, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 //}
-//
+
 ////Creates and links all the shaders we will be using to draw to the screen when called
 ////Called in StartUp()
 //void CreateShaders()
@@ -200,7 +200,7 @@
 //	glDeleteShader(fragmentShader); //Deletes the shaders
 //	glDeleteShader(vertexShader);
 //}
-//
+
 ////Creates the context window we are drawing to.
 //int StartUp()
 //{
@@ -229,7 +229,7 @@
 //
 //	return 1;
 //}
-//
+
 ////Keeps the application in a constant game loop
 //int Update()
 //{
@@ -244,7 +244,7 @@
 //
 //	return 0;
 //}
-//
+
 //int main()
 //{
 //	//std::vector<tinyobj::shape_t> bunny;
