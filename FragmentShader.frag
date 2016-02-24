@@ -1,4 +1,5 @@
 #version 410 
-in vec4 vColor; 
-out vec4 FragColor; 
-void main() {FragColor = vColor;} 
+in vec2 vTexCoord;
+out vec4 FragColor;
+uniform sampler2D diffuse;
+void main() { FragColor = texture(diffuse, vTexCoord).rrrr; FragColor.a = 1;}

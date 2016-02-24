@@ -246,53 +246,65 @@ int main()
 		0, 2, 3,
 	};
 
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	
+	//BUFFER GENERATION
+	// generate buffers
+	glGenBuffers(1, &m_VBO);
+	glGenBuffers(1, &m_IBO);
 
+	// generate vertex array object (descriptors)
+	glGenVertexArrays(1, &m_VAO);
+
+	// all changes will apply to this handle
+	glBindVertexArray(m_VAO);
+
+	// set vertex buffer data
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferData(
+		GL_ARRAY_BUFFER, //type of buffer to bind to
+		(64 * 64) * sizeof(Vertex), //how large should the buffer be
+									   //in this example we have 64 * 64 elements
+									   //they are of size (Vertex) which is the size of a glm::vec4 and a glm::vec2
+		plane.data(), //the actual data
+		GL_STATIC_DRAW);
+
+	// index data
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ((64 - 1) * (64 - 1) * 6) * sizeof(unsigned int), plane.data(), GL_STATIC_DRAW);
+
+	// position
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+
+	// texcoords
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(vec4));
+
+	// safety
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 
 	glGenTextures(1, &m_perlin_texture);
 	glBindTexture(GL_TEXTURE_2D, m_perlin_texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 10, 10, 0, GL_RED, GL_FLOAT, perlin_data);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// bind data as float for a single channel
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F,
+		dims, dims, 0, GL_RED, GL_FLOAT, perlin_data);
+
+	// enable blending else samples must be "exact" centre of texels
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//stbi_image_free(data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	glGenBuffers(1, &m_IBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		sizeof(perlin_data),
-		perlin_data,
-		GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	// set wrap to stop errors at edge of noise sampling
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	glGenBuffers(1, &m_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, 
-		vertOffset + colorOffset,
-		NULL,
-		GL_STATIC_DRAW);
-
-	glBufferSubData(GL_ARRAY_BUFFER, 
-		0,
-		plane.size() * sizeof(vec3),
-		plane.data());
-	glBufferSubData(GL_ARRAY_BUFFER, vertOffset, colorOffset, &cube_colors[0]);
-
-
-
-	glGenVertexArrays(1, &m_VAO);
-	glBindVertexArray(m_VAO);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)vertOffset);
-	//unbind now that we have generated and populated
-
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	
-
+	// unbind texture
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	//setup some matricesa
 	mat4 m_model = mat4();

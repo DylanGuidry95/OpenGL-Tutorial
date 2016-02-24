@@ -1,8 +1,8 @@
 #version 410 
 layout(location=0) in vec4 Position; 
-layout(location=1) in vec4 Color; 
-out vec4 vColor; 
+layout(location=1) in vec2 TexCoord; 
+out vec2 vTexCoord; 
 uniform mat4 ProjectionView; 
-uniform float time; 
-uniform float heightScale; 
-void main() {  vColor = Color; gl_Position = ProjectionView * Position ; } 
+uniform sampler2D noiseTexture;
+uniform float heightscale = 10; 
+void main() {  vTexCoord = TexCoord; float height = texture(noiseTexture, TexCoord).r; gl_Position = ProjectionView * (Position + vec4(0, height * heightscale,0,0)) ; } 
