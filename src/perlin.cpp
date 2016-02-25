@@ -307,7 +307,7 @@ int main()
 
 	//setup some matricesa
 	mat4 m_model = mat4();
-	mat4 m_view = lookAt(vec3(60.0, 30.0, 60.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
+	mat4 m_view = lookAt(vec3(120.0, 80.0, 120.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
 	mat4 m_projection = glm::perspective(glm::pi<float>()*0.25f, 16 / 9.f, 0.1f, 1000.f);
 	mat4 m_projectionViewMatrix = m_projection * m_view;
 	//end setup matrices
@@ -318,11 +318,17 @@ int main()
 	//because we are sending it to the uniform with this function
 	glUniformMatrix4fv(projectionViewUniform, 1, false, value_ptr(m_projectionViewMatrix));
 
+	GLfloat height = glGetUniformLocation(m_shader, "heightScale");
+
+
 	int texUniform = glGetUniformLocation(m_shader, "noiseTexture");
 	glUniform1i(texUniform, 0);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_perlin_texture);
+
+	int i = 0;
+	bool rise = true;;
 
 	while (glfwWindowShouldClose(window) == false && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS)
 	{
@@ -330,10 +336,32 @@ int main()
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
+		glUniform1f(height, i);
+		if (i >= dims)
+		{
+			rise = false;
+		}
+		else if (i <= -dims / 2)
+		{
+			rise = true;
+		}
+
+		if (rise == true)
+		{
+			i += 5;
+		}
+		else
+		{
+			i-=2;
+		}
+
 		unsigned int modelID = glGetUniformLocation(m_shader, "Model");
-		////float time = glfwGetTime();
-		////m_model = rotate(mat4(), 5.0f * cos(time), vec3(0, 1, 0));
+		//float time = glfwGetTime();
+		//m_model = rotate(mat4(), 5.0f * cos(time), vec3(0, 1, 0));
 		glUniformMatrix4fv(modelID, 1, false, value_ptr(m_model));
+
 
 		glBindVertexArray(m_VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);

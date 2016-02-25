@@ -4,7 +4,7 @@ layout( location = 1 ) in vec2 TexCoord;
 out vec2 vTexCoord;
 uniform mat4 ProjectionViewModel;
 uniform sampler2D noiseTexture;
-uniform float heightScale = 10;
+uniform float heightScale = 0;
 void main() {
 	vTexCoord = TexCoord;
 	float height = texture( noiseTexture, TexCoord ).r;
